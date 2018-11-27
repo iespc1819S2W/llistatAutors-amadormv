@@ -1,15 +1,61 @@
 <?php
+session_start();
 $autors = [];
+$paginacio = [];
+if (!isset($_POST)) {
+    session_destroy();
+}
+if (isset($_SESSION["paginacio"])) {
+    $paginacio = $_SESSION["paginacio"];
+} else {
+    $paginacio = [
+            "actualPage" => 1,
+            "nextPage" => 1,
+            "prevPage" => 1,
+            "totalPages" => 1,
+            "resultsPerPage" => 10,
+            "totalResults" => 0,
+            "from" => 0,
+    ];
+    $_SESSION["paginacio"] = $paginacio;
+
+}
+
+if (isset($_POST["next"])) {
+    $paginacio["actualPage"]++;
+}
+if (isset($_POST["prev"])) {
+    $paginacio["actualPage"]--;
+}
+if (isset($_POST["first"])) {
+    $paginacio["actualPage"] = 1;
+}
+if (isset($_POST["last"])) {
+    $paginacio["actualPage"] = $paginacio['totalPages'];
+}
+
 $ordre = "nomasc";
 $queryAutors = "SELECT ID_AUT, NOM_AUT FROM AUTORS";
 // ORDENAR DES DE QUERY
 include("conn.php");
 
+function calculatePagination($result, $paginacio)
+{
+    $paginacio["totalResults"] = count($result);
+    $paginacio["totalPages"] = $paginacio["totalResults"] / $paginacio["resultsPerPage"];
+    $paginacio["from"] = ($paginacio["actualPage"] - 1) * $paginacio["resultsPerPage"];
+    return $paginacio;
+}
 
-if ($_POST["cerca"]) {
+// function nextPage($paginacio)
+// {
+//     return $paginacio;
+// }
+
+if (isset($_POST["cerca"])) {
     $cerca = $_POST["cerca"];
 
-    $queryAutors = $queryAutors . " WHERE ID_AUT = '" . $cerca . "' OR NOM_AUT LIKE '" . $cerca . "'";
+    $queryAutors = $queryAutors . " WHERE ID_AUT = '" . $cerca . "' OR NOM_AUT LIKE '%" . $cerca . "%'";
 }
 if (isset($_POST["ordenar"])) {
     $ordre = $_POST["ordre"];
@@ -33,17 +79,24 @@ if (isset($_POST["ordenar"])) {
 }
 
 
+$result = $mysqli->query($queryAutors);
+$autors = $result->fetch_all(MYSQLI_ASSOC);
+
+$paginacio = calculatePagination($autors, $paginacio);
+$_SESSION['paginacio'] = $paginacio;
+$queryAutors = $queryAutors . " LIMIT " . $paginacio["from"] . ", " . $paginacio["resultsPerPage"];
+
 if ($result = $mysqli->query($queryAutors)) {
     $autors = $result->fetch_all(MYSQLI_ASSOC);
-        // while ($row = $result->fetch_assoc()) {
-        //     // echo $row["ID_AUT"].'-'. $row["NOM_AUT"];
-        //     $autors[] = $row;
-        // }
+        
     $result->free();
 }
 $mysqli->close();
 
 
+foreach ($_SESSION['paginacio'] as $valor) {
+    echo $valor .  " ";
+}
 ?>
 
 <!DOCTYPE html>
@@ -64,15 +117,16 @@ $mysqli->close();
     </a>
     </nav>
 
-
-    <h1>Llistat autors</h1>
-    <form class="form-inline" action="" method="post">
-        <div class="form-group mb-2">
-            <label for="ordre" class="sr-only">Ordenar per</label>
-            <select name="ordre" id="ordre" class="form-control">
-                <option <?php if ($ordre == "nomasc") {
-                            echo "selected ";
-                        } ?> value="nomasc">Nom - Ascendent</option>
+    <div class="container">
+        
+        <h1>Llistat autors</h1>
+        <form class="form-inline" action="" method="post">
+            <div class="form-group mb-2">
+                <label for="ordre" class="sr-only">Ordenar per</label>
+                <select name="ordre" id="ordre" class="form-control">
+                    <option <?php if ($ordre == "nomasc") {
+                                echo "selected ";
+                            } ?> value="nomasc">Nom - Ascendent</option>
                 <option <?php if ($ordre == "nomdsc") {
                             echo "selected ";
                         } ?> value="nomdsc">Nom - Descendent</option>
@@ -85,11 +139,23 @@ $mysqli->close();
             </select>
         </div>
         <div class="form-group mx-sm-3 mb-2">
-            <input type="text" class="form-control" id="cerca" name="cerca" placeholder="Cerca...">
+            <input type="text" class="form-control" id="cerca" name="cerca" placeholder="Cerca..." <?php if (isset($cerca)) {
+                                                                                                        echo 'value="' . $cerca . '"';
+                                                                                                    } ?>>
         </div>
-        <button type="submit" name="ordenar" class="btn btn-primary mb-2">Filtrar</button>
+        <div class="form-group mx-sm-3">
+            <button type="submit" name="ordenar" class="btn btn-primary mb-2">Filtrar</button>
+        </div>
+        <div class="form-group mx-sm-3">            
+            <button type="submit" name="first" class="btn btn-primary mb-2">First</button>
+            <button type="submit" name="prev" class="btn btn-primary mb-2">Prev</button>
+            <button type="submit" name="next" class="btn btn-primary mb-2">Next</button>
+            <button type="submit" name="last" class="btn btn-primary mb-2">Last</button>
+        </div>
     </form>
     Query: <?php echo $queryAutors ?>
+    <br>
+    Pàgina <?= $paginacio["actualPage"] ?> de <?= $paginacio["totalPages"] ?>
     
     <table class="table table-hover">
         <thead>
@@ -102,13 +168,15 @@ $mysqli->close();
             <?php
             foreach ($autors as $autor) {
                 echo "<tr>";
-                    echo '<th scope="row">' . $autor["ID_AUT"] . '</th>';
-                    echo '<th scope="row">' . $autor["NOM_AUT"] . '</th>';
+                echo '<th scope="row">' . $autor["ID_AUT"] . '</th>';
+                echo '<th scope="row">' . $autor["NOM_AUT"] . '</th>';
                 echo "</tr>";
             }
 
             ?>
         </tbody>
     </table>
+
+</div>
 </body>
 </html>
