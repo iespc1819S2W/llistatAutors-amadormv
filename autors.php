@@ -22,10 +22,14 @@ if (isset($_SESSION["paginacio"])) {
 }
 
 if (isset($_POST["next"])) {
-    $paginacio["actualPage"]++;
+    if ($paginacio["actualPage"] < $paginacio["totalPages"]) {
+        $paginacio["actualPage"]++;
+    }
 }
 if (isset($_POST["prev"])) {
-    $paginacio["actualPage"]--;
+    if ($paginacio["actualPage"] > 1) {
+        $paginacio["actualPage"]--;
+    }
 }
 if (isset($_POST["first"])) {
     $paginacio["actualPage"] = 1;
@@ -92,11 +96,6 @@ if ($result = $mysqli->query($queryAutors)) {
     $result->free();
 }
 $mysqli->close();
-
-
-foreach ($_SESSION['paginacio'] as $valor) {
-    echo $valor .  " ";
-}
 ?>
 
 <!DOCTYPE html>
@@ -153,7 +152,6 @@ foreach ($_SESSION['paginacio'] as $valor) {
             <button type="submit" name="last" class="btn btn-primary mb-2">Last</button>
         </div>
     </form>
-    Query: <?php echo $queryAutors ?>
     <br>
     Pàgina <?= $paginacio["actualPage"] ?> de <?= $paginacio["totalPages"] ?>
     
