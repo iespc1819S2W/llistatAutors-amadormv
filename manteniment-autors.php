@@ -1,6 +1,6 @@
 <?php
 session_start();
-require('functions.php');
+require('funcions.php');
 $autors = [];
 $paginacio = [];
 if (!isset($_POST)) {
@@ -40,18 +40,19 @@ if (isset($_POST["last"])) {
 }
 
 $ordre = "nomasc";
-$queryAutors = "SELECT ID_AUT, NOM_AUT FROM AUTORS";
+$queryAutors = "SELECT ID_AUT, NOM_AUT, FK_NACIONALITAT FROM AUTORS";
 // ORDENAR DES DE QUERY
 include("conn.php");
 
 if (isset($_POST["afegir"])) {
     $nouAutor = $_POST["nomAutor"];
+    $nacionalitatAutor = $_POST["nacionalitat"];
 
     $row = $mysqli->query("SELECT MAX(ID_AUT) FROM AUTORS");
     $resultId = $row->fetch_row();
     $id = $resultId[0];
     $id++;
-    $sql = "INSERT INTO AUTORS(ID_AUT, NOM_AUT) VALUES ($id, '$nouAutor')";
+    $sql = "INSERT INTO AUTORS(ID_AUT, NOM_AUT, FK_NACIONALITAT) VALUES ($id, '$nouAutor', '$nacionalitatAutor')";
     $resultInsert = $mysqli->query($sql);
 
 }
@@ -59,7 +60,8 @@ if (isset($_POST["afegir"])) {
 if (isset($_POST["guardar"])) {
     $id = $_POST["idAutor"];
     $nomAutor = $_POST["nomAutor"];
-    $sql = "UPDATE AUTORS SET NOM_AUT = '$nomAutor' WHERE ID_AUT = $id";
+    $nacionalitatAutor = $_POST["nacionalitat"];
+    $sql = "UPDATE AUTORS SET NOM_AUT = '$nomAutor', FK_NACIONALITAT = '$nacionalitatAutor' WHERE ID_AUT = $id";
     $resultUpdate = $mysqli->query($sql);
 }
 
@@ -137,7 +139,6 @@ if ($result = $mysqli->query($queryAutors)) {
         
     $result->free();
 }
-$mysqli->close();
 ?>
 
 <!DOCTYPE html>
@@ -220,7 +221,13 @@ $mysqli->close();
                     echo '<form action="" method="post">';
                     echo '<th scope="row"><input type="number" readonly class="form-control-plaintext" name="idAutor" value='.$autor["ID_AUT"].'></th>';
                     echo '<th scope="row"><input type="text" '.  ($idAutorEditar == $autor["ID_AUT"] ? ' class="form-control"' : 'readonly class="form-control-plaintext"')  . ' name="nomAutor" value="'.$autor["NOM_AUT"].'"></th>';
-                    echo '<th scope="row">'. montarSelect($mysqli, $sql, $aut) ;
+                    echo '<th scope="row">';
+                    if ($idAutorEditar == $autor["ID_AUT"]) {
+                        montarSelect($mysqli, "SELECT nacionalitat FROM nacionalitats", "nacionalitat", "nacionalitat", "nacionalitat", $autor["FK_NACIONALITAT"]);
+                    } else {
+                        echo $autor["FK_NACIONALITAT"];
+                    }
+                    echo '</th>' ;
                     ?>
                     <th scope= "row">
                         <?php 
@@ -259,6 +266,11 @@ $mysqli->close();
                             <label for="nomAutor" class="col-form-label">Nom:</label>
                             <input type="text" class="form-control" id="nomAutor" name="nomAutor" placeholder="LLINATGES, NOM" required>
                         </div>
+                        <div class="form-group">
+                        <?php 
+                        montarSelect($mysqli, "SELECT nacionalitat FROM nacionalitats", "nacionalitat", "nacionalitat", "nacionalitat") 
+                        ?>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Tancar</button>
@@ -269,4 +281,11 @@ $mysqli->close();
         </div>
     </div>
 </body>
-</html>
+</html
+
+<?php
+
+$mysqli->close();
+
+
+?>
